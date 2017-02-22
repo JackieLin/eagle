@@ -10,6 +10,7 @@ generator = require './generator.coffee'
 ###
  * 解析 html
 ###
-module.exports = (html) ->
+module.exports = (html, vm) ->
     # get render string
-    generator parse.parseHTML html
+    result = generator parse.parseHTML(html), vm
+    result

@@ -4,7 +4,7 @@
 ###
 'use strict'
 
-HtmlParse = require './html-parse'
+{ HTMLParser } = require './html-parse.js'
 
 ###
  * 属性生成 map
@@ -16,7 +16,7 @@ makeAttrMap = (array) ->
     if Array.isArray array
         array.forEach (v, i) ->
             map[v.name] = v.value
-    
+
     map
 
 ###
@@ -30,17 +30,18 @@ exports.parseHTML = (html='') ->
     stack = []
 
     HTMLParser html,
-        start: (tag, attrs, unary) ->
-            # console.log '%s   %o    %s', tag, attrs, unary
-            element = 
+        start: (tag, attrs, unary, isStandard) ->
+            # console.log '%s   %o    %s  %s', tag, attrs, unary, isStandard
+            element =
                 parent: currentParent
                 tag: tag
                 attrs: attrs
+                isStandard: isStandard
                 attrsMap: makeAttrMap attrs
                 children: []
-                
+
             currentParent.children.push element if currentParent
-            
+
             root = element if not root
 
             if not unary

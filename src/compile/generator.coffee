@@ -7,22 +7,61 @@
 
 parseText = require './text-parse.coffee'
 { flatten } = require '../util/common.coffee'
+{ parseEvent } = require './modules/event.coffee'
+# current vm
+vm = null
 
-onReg = /e-on:([^=]+)/
-
-generator = 
+generator =
     ###
      * el dom element
      * key dom key unique
     ###
     element: (el, key) ->
-        if exp = @.getAttr el, 'e-for'
+        # user custom tagname
+        if not el.isStandard
+            return @.genCustomTag el
+        else if exp = @.getAttr el, 'e-for'
             return @.loop el, exp
         else if exp = @.getAttr el, 'e-if'
             return @.condition el, exp.trim()
         else
             # generate vdom
             return "__h__( '#{el.tag}', #{this.attrs(el)}, #{ this.children(el.children, el) })"
+
+
+    ###
+     * generator props
+    ###
+    genProps: (el) ->
+        result = []
+        propsKeys = Object.keys(el.attrsMap).filter (v) ->
+            v.indexOf(':') is 0
+
+        propsKeys.forEach (v) ->
+            result.push "#{ v.slice(1) }: #{ el.attrsMap[v] }"
+
+        propsKeys.forEach (v) ->
+            delete el.attrsMap[v]
+
+        result
+
+
+    ###
+     * generator custom tag
+    ###
+    genCustomTag: (el) ->
+        query = "[key=#{ vm._id }]"
+        props = @.genProps el
+        props.push "el: '#{ query }'"
+
+        try
+            sub = new Function("with(this) { return _extend(#{ el.tag }, { #{ props.join(',') }}) }").call vm
+            vm.subsCompoents.push sub
+        catch e
+            console.error "can not find subsCompoents #{ el.tag }"
+
+        "__h__( 'div', {attributes: {'key': '#{ vm._id }'}}, [])"
+
 
     ###
      * get element attr
@@ -34,7 +73,7 @@ generator =
         # delete for avoid Infinite loop
         delete el.attrsMap[attr]
         val
-    
+
     ###
      * generator all other attrs
     ###
@@ -46,10 +85,9 @@ generator =
             v.indexOf(prefix) >= 0
 
         result = keys.reduce (prev, next) ->
-            exp = next.match(onReg)
-
-            if exp and exp.length is 2
-                prev.push "'ev-#{ exp[1] }': events.#{ el.attrsMap[next] }"
+            event = parseEvent next, el.attrsMap[next]
+            if event
+                prev.push event
             else if next.indexOf("#{ prefix }data") >= 0
                 attributes.push "'#{ next.replace(prefix, '') }': #{ el.attrsMap[next] }"
             else
@@ -75,7 +113,7 @@ generator =
         # add class support
         if (exp = @.getAttr(el, 'e-class')) or el.attrsMap.class
             attributes.push "className: _renderClass(#{ exp or '\'\'' }, '#{ el.attrsMap.class or '' }')"
-        
+
         directive = @.generateAllAttrs el, 'e-'
         attributes.push directive.html
 
@@ -91,12 +129,12 @@ generator =
             else
                 message = "'#{ v }': '#{ el.attrsMap[v] }'"
             message
-        
+
         # flatten
         attributes = flatten attributes
 
         result += attributes.join ','
-        
+
         result += ',' if result.length isnt 1 and directive.attr.length
         result += "attributes: { #{ directive.attr } }" if directive.attr.length
 
@@ -109,18 +147,22 @@ generator =
     ###
     children: (children, parent) ->
         return if not Array.isArray children
-        # console.info "[ #{ @.parseText parent.text } ]"
         return "[ #{ @.parseText parent.text } ]" if not children.length and parent
         "[#{ children.map(@.node).join ',' }]"
 
-    
+
     ###
      * parse text
     ###
     parseText: (text) ->
         return '' if not text
         result = parseText text
-        return "'#{ text }'" if not result
+        # trim handle enter
+        if not result
+            text = text.trim()
+            text = text.replace('&nbsp;', ' ')
+            # console.info text
+            return "'#{ text }'"
         result
 
     ###
@@ -144,7 +186,7 @@ generator =
 
         if not inMatch
             throw new Error 'Invalid v-for expression: #{exp}'
-        
+
         list = inMatch[3].trim()
         index = inMatch[2].trim() || 'ix'
         item = inMatch[1].trim()
@@ -155,10 +197,10 @@ generator =
 ###
  * 将 ast 树生成 vdom 字符串
 ###
-module.exports = (ast) ->
+module.exports = (ast, currentVm) ->
     if not ast
         return
-    
-    # console.log ast
+
+    vm = currentVm
     code = generator.element ast
     new Function "with(this) { return #{code} }"

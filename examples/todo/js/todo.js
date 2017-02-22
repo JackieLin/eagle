@@ -30,15 +30,6 @@ var todo = new Eagle({
         }).length
     },
     events: {
-        change: function(event) {
-            var target = event.target
-            todo.addItem(target.value)
-            todo.getRemainCount()
-        },
-        edit: function(event) {
-            event.preventDefault()
-            return false
-        },
         deleteItem: function() {
             var target = event.target
             var ix = target.getAttribute('data-ix')

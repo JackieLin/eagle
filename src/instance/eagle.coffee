@@ -14,13 +14,17 @@ Delegator = require 'dom-delegator'
 { replaceWith, html } = require '../util/dom.coffee'
 observer = require '../observer/index.coffee'
 Watcher = require '../observer/watcher.coffee'
+{ argsToArray, extend } = require '../util/common.coffee'
+uid = 0
 
 module.exports = class Component
     constructor: (@options) ->
+        @._id = "component_#{ uid++ }"
         # option message change to this
         Object.keys(@.options).forEach (v) =>
             @[v] = @.options[v]
 
+        @.data = @.data || {}
         @.el = document.querySelector @.options.el || 'body'
 
         # template exists, add to dom
@@ -28,21 +32,28 @@ module.exports = class Component
 
         Object.keys(@.data).forEach (v, i) =>
             @.proxy v
-        
+
         @.ob = observer @.data
 
         # events
         @.delegator = new Delegator()
 
+        # vm children component
+        @.subsCompoents = []
         # generator render
-        @.render = parser @.el.outerHTML
+        @.render = parser @.el.outerHTML, @
         # console.info @.render
 
-        @.update @.render.call @
-
         @.watchers = []
+        # console.log '%o start', @
         # vm watcher
         @.watcher = new Watcher @, @.render, @.update
+        # console.log '%o finished', @
+        @.update @.watcher.value
+
+        # update subsCompoents
+        @.subsCompoents.forEach (v) ->
+            new Component v
 
 
     ###
@@ -58,7 +69,8 @@ module.exports = class Component
             @.rootNode = patch @.rootNode, patches
 
         @._oldTree = vtree
-    
+        @.vtree = vtree
+
     ###
      * add data key to component
     ###
@@ -70,8 +82,8 @@ module.exports = class Component
                 @.data[key]
             set: (val) =>
                 @.data[key] = val
-    
-    
+
+
     ###
      * renderClass
     ###
@@ -80,5 +92,7 @@ module.exports = class Component
         classes = cls + ' ' if cls
         classes += Object.keys(dynamic).filter((v) -> dynamic[v]).join ' '
         classes
-        
+
     __h__: h
+    _extend: extend
+    _argsToArray: argsToArray

@@ -1,0 +1,18 @@
+extends: google
+
+rules:
+    max-len:
+        - warn
+
+    no-var:
+        - warn
+
+    one-var:
+        - warn
+
+    space-before-function-paren:
+        - error
+        - always
+
+    prefer-rest-params:
+        - warn

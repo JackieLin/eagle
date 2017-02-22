@@ -16,11 +16,9 @@
         <section id="todoapp">
             <header id="header">
                 <h1>todos</h1>
-                <form id="todo-form" e-on:submit="edit.bind(this)">
-                    <input id="new-todo" placeholder="What needs to be done?" e-value="message" autofocus="autofocus" e-on:change="change.bind(this)"/>
-                </form>
+                <todoForm :message="message"></todoForm>
             </header>
-            <section id="main" e-show="todos.length">
+            <section id="main" e-if="todos.length">
                 <input id="toggle-all" type="checkbox" e-on:change="toggleAll" e-checked="selectAll"/>
                 <label for="toggle-all">Mark all as complete</label>
                 <ul id="todo-list">
@@ -35,7 +33,7 @@
             </section>
             <footer id="footer" e-if="todos.length" class="">
                 <span id="todo-count"><strong>{{remainingCount}}</strong>
-                    <span> items left</span>
+                    <span>&nbsp;items left</span>
                 </span>
                 <ul id="filters">
                     <li>
@@ -63,6 +61,7 @@
     </div>
 </body>
 <script src="../../dist/eagle.js"></script>
+<script src="./js/todoForm.js"></script>
 <script src="./js/todo.js"></script>
 
 </html>

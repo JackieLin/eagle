@@ -13,6 +13,9 @@ module.exports = class Watcher
         isFun = typeof @.render is 'function'
         @.dirty = @.lazy # for lazy watcher
 
+        # add watcher to vm watchers
+        @.vm.watchers.push @
+
         if isFun
             @.getter = @.render
             @.setter = undefined
@@ -41,6 +44,8 @@ module.exports = class Watcher
 
 
     beforeGet: () ->
+        # console.dir @
+        # console.trace()
         Dependence.target = @
 
     afterGet: () ->

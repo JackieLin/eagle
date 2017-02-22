@@ -39,12 +39,15 @@ defineReactive = (data, key, value) ->
         get: () ->
             val = getter.call data if getter
             val = value if not getter
+            # console.info key
+            # console.info Dependence.target
             if Dependence.target
                 dep.depend()
                 if childOb
                     childOb.dep.depend()
 
             val
+
 
         set: (newVal) ->
             val = getter.call data if getter
